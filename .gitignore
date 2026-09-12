@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+*.db
+__pycache__/
+*.py[cod]
+*.sqlite3
+node_modules/
+uploads/*
+!uploads/.gitkeep
+*.log
+package-lock.json
+Pipfile.lock
+poetry.lock
+npm-debug.log*
+.DS_Store
