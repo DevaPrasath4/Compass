@@ -8,19 +8,24 @@ function saveSession(data) {
   localStorage.setItem("compass_name", data.name);
 }
 
+function clearSession() {
+  localStorage.removeItem("compass_token");
+  localStorage.removeItem("compass_role");
+  localStorage.removeItem("compass_name");
+}
+
 function getToken() { return localStorage.getItem("compass_token"); }
 function getRole() { return localStorage.getItem("compass_role"); }
 function getName() { return localStorage.getItem("compass_name"); }
 
 function logout() {
-  localStorage.removeItem("compass_token");
-  localStorage.removeItem("compass_role");
-  localStorage.removeItem("compass_name");
+  clearSession();
   window.location.href = "login.html";
 }
 
 function requireRole(role) {
   if (getToken() === null || getRole() !== role) {
+    clearSession();
     window.location.href = "login.html";
   }
 }
@@ -39,6 +44,24 @@ async function api(path, { method = "GET", body = null, isForm = false } = {}) {
     logout();
     return null;
   }
+  if (res.status === 403) {
+    const currentRole = getRole();
+    const normalizedPath = path.split("?")[0];
+    const isStudentOnly = normalizedPath.startsWith("/api/streak") || normalizedPath.startsWith("/api/complaints/mine") || normalizedPath.startsWith("/api/profile") || normalizedPath.startsWith("/api/leaderboard");
+    const isAdminOnly = normalizedPath.startsWith("/api/complaints") && !normalizedPath.startsWith("/api/complaints/mine");
+
+    if (currentRole === "student" && isAdminOnly) {
+      clearSession();
+      window.location.href = "login.html";
+      return null;
+    }
+    if (currentRole === "admin" && isStudentOnly) {
+      clearSession();
+      window.location.href = "login.html";
+      return null;
+    }
+  }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data.detail || "Something went wrong");
@@ -46,8 +69,20 @@ async function api(path, { method = "GET", body = null, isForm = false } = {}) {
   return data;
 }
 
+function parseIsoUtc(iso) {
+  if (!iso) return new Date();
+  let s = String(iso);
+  if (!s.endsWith("Z") && !s.includes("+") && !s.includes("-", 10)) {
+    s += "Z";
+  }
+  return new Date(s);
+}
+
 function timeAgo(iso) {
-  const diffMs = Date.now() - new Date(iso).getTime();
+  if (!iso) return "just now";
+  const dateObj = parseIsoUtc(iso);
+  const diffMs = Date.now() - dateObj.getTime();
+  if (isNaN(diffMs) || diffMs < 0) return "just now";
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -57,9 +92,24 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
+function formatDateTime(iso) {
+  if (!iso) return "N/A";
+  const d = parseIsoUtc(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function statusLabel(s) {
   return { submitted: "Submitted", in_progress: "In Progress", resolved: "Resolved" }[s] || s;
 }
+
 
 function ensureAdminChatWidget() {
   if (document.getElementById("compassChatWidget")) return;

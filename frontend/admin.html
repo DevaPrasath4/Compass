@@ -612,12 +612,14 @@ function renderCards(list) {
           <div class="complaint-card-top">
             <div class="category-icon-badge">${icon}</div>
             <div class="complaint-card-body">
-              <h3 class="complaint-card-title">${escapeHtml(c.description)}</h3>
+              <h3 class="complaint-card-title">${escapeHtml(c.title || c.description)}</h3>
+              <p style="font-size:0.84rem;color:var(--admin-text-muted);margin:2px 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(c.description)}</p>
               <div class="complaint-card-meta">
                 ${escapeHtml(c.location)} &bull; ${escapeHtml(c.student_name || 'Demo Student')}<br>
                 Reported ${timeAgo(c.created_at)} &bull; Open ${c.days_open}d
               </div>
             </div>
+
             ${getPriorityBadge(c.priority_score)}
           </div>
 
@@ -671,7 +673,7 @@ function openComplaintModal(id) {
         <span>${escapeHtml(c.student_email || "student@compass.edu")}</span>
       </div>
       <div class="modal-detail-item">
-        <label>Confidence Score</label>
+        <label>Student Confidence Score</label>
         <span class="confidence-badge" style="font-size:0.85rem;">Confidence: ${studentConf}%</span>
       </div>
       <div class="modal-detail-item">
@@ -1039,6 +1041,14 @@ function handleAvatarUpload(input) {
 // Initial Load
 loadQueue();
 loadOverview();
+
+// Realtime multi-user auto-refresh (polls every 4 seconds)
+setInterval(() => {
+  if (!document.hidden) {
+    loadQueue();
+    loadOverview();
+  }
+}, 4000);
 </script>
 
 </body>

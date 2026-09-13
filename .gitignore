@@ -5,6 +5,7 @@
 __pycache__/
 *.py[cod]
 *.sqlite3
+backend/rag/chroma_db/
 node_modules/
 uploads/*
 !uploads/.gitkeep
